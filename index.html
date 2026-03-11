@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Calculadora base Subnautica</title>
+    <title>Alterra PDA - Base de Datos Maestra</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&display=swap');
 
@@ -33,7 +33,7 @@
             height: 96vh;
             overflow: hidden;
             user-select: none;
-            position: relative; /* Necesario para la marca de agua */
+            position: relative;
         }
 
         h1, h2, h3 { color: var(--accent); margin: 0 0 10px 0; text-transform: uppercase; letter-spacing: 1px; }
@@ -53,52 +53,69 @@
         .catalog-container { flex: 2; overflow-y: auto; scroll-behavior: smooth; position: relative; }
         .side-panel { flex: 1.4; display: flex; flex-direction: column; gap: 15px; overflow-y: auto; }
         
-        /* --- ESTILOS DE BARRA DE BÚSQUEDA --- */
-        .header-row { 
-            display: flex; justify-content: space-between; align-items: center; 
-            margin-bottom: 10px; gap: 15px; 
-        }
-        .header-row h1, .header-row h2 { 
-            margin: 0; 
-            white-space: nowrap; 
-            overflow: hidden; 
-            text-overflow: ellipsis; 
-        }
+        /* --- BARRA DE BÚSQUEDA --- */
+        .header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; gap: 15px; }
+        .header-row h1, .header-row h2 { margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .header-row h2 { font-size: 1.3em; }
 
         .search-wrapper { display: flex; align-items: center; position: relative; height: 40px; }
-        
-        .search-icon { 
-            cursor: pointer; font-size: 1.5em; color: var(--accent); 
-            transition: transform 0.2s; user-select: none; z-index: 10;
-        }
+        .search-icon { cursor: pointer; font-size: 1.5em; color: var(--accent); transition: transform 0.2s; z-index: 10; }
         .search-icon:hover { transform: scale(1.1); text-shadow: 0 0 10px var(--accent); }
         
         .search-input {
             width: 0; opacity: 0; transition: width 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s;
-            border: none; border-bottom: 2px solid var(--accent); 
-            background: var(--bg-ocean); 
+            border: none; border-bottom: 2px solid var(--accent); background: var(--bg-ocean); 
             color: var(--text-main); font-family: 'Rajdhani', sans-serif; font-size: 1.1em;
             position: absolute; right: 40px; pointer-events: none; padding: 5px 10px;
-            z-index: 5; border-radius: 4px 4px 0 0;
-            box-shadow: -5px 0 15px rgba(6, 16, 30, 0.9); 
+            z-index: 5; border-radius: 4px 4px 0 0; box-shadow: -5px 0 15px rgba(6, 16, 30, 0.9); 
         }
         .search-input:focus { outline: none; background: #0a192f; }
         .search-input.active { width: 140px; opacity: 1; pointer-events: auto; } 
         
         .category-group { margin-bottom: 10px; }
 
-        /* --- RESTO DE ESTILOS --- */
-        .action-bar { display: flex; gap: 10px; margin-bottom: 15px; }
+        /* --- ACTION BAR Y BOTONES --- */
+        .action-bar { display: flex; gap: 8px; margin-bottom: 15px; flex-wrap: wrap; }
         .btn-action {
             background: rgba(0, 255, 204, 0.1); border: 1px solid var(--accent); color: var(--accent);
-            padding: 8px 12px; border-radius: 5px; cursor: pointer; font-family: 'Rajdhani', sans-serif;
-            font-weight: bold; text-transform: uppercase; flex: 1; transition: 0.2s; font-size: 0.9em;
+            padding: 8px 10px; border-radius: 5px; cursor: pointer; font-family: 'Rajdhani', sans-serif;
+            font-weight: bold; text-transform: uppercase; flex: 1; transition: 0.2s; font-size: 0.85em;
+            text-align: center; white-space: nowrap;
         }
         .btn-action:hover { background: var(--accent); color: #000; }
         .btn-danger { border-color: var(--danger); color: var(--danger); background: rgba(255,51,51,0.1); }
         .btn-danger:hover { background: var(--danger); color: #fff; }
 
+        /* --- MODAL DEL GESTOR DE PLANOS --- */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(0,0,0,0.8); z-index: 1000;
+            display: flex; justify-content: center; align-items: center; backdrop-filter: blur(5px);
+        }
+        .modal-content {
+            width: 450px; max-width: 90vw; max-height: 85vh; border: 2px solid var(--accent); background: var(--bg-ocean);
+        }
+        .modal-input {
+            width: 100%; border: 1px solid var(--accent); background: rgba(0, 0, 0, 0.5);
+            color: var(--text-main); font-family: 'Rajdhani', sans-serif; font-size: 1.1em;
+            padding: 8px 10px; border-radius: 4px; outline: none; box-sizing: border-box;
+        }
+        .save-item {
+            display: flex; justify-content: space-between; align-items: center;
+            background: rgba(255,255,255,0.05); padding: 10px; margin-bottom: 8px;
+            border-radius: 5px; border-left: 3px solid var(--accent); transition: 0.2s;
+        }
+        .save-item:hover { background: rgba(255,255,255,0.1); }
+        .save-item-name { font-weight: bold; font-size: 1.1em; flex-grow: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-right: 10px;}
+        .save-item-actions { display: flex; gap: 5px; }
+        .btn-small {
+            background: var(--bg-ocean); color: var(--text-main); border: 1px solid var(--text-muted);
+            padding: 5px 10px; border-radius: 4px; cursor: pointer; font-family: 'Rajdhani'; font-weight:bold; transition: 0.2s;
+        }
+        .btn-small:hover { background: var(--accent); color: #000; border-color: var(--accent); }
+        .btn-small.danger:hover { background: var(--danger); color: #fff; border-color: var(--danger); }
+
+        /* --- TELEMETRÍA --- */
         .status-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 10px; }
         .status-box { background: rgba(0, 0, 0, 0.4); border: 1px solid var(--panel-border); border-radius: 8px; padding: 10px 5px; text-align: center; }
         .status-value { font-size: 1.3em; font-weight: 700; margin: 5px 0; }
@@ -110,7 +127,6 @@
         .neutral-text { color: var(--text-main); }
 
         @keyframes pulse { from { text-shadow: 0 0 5px var(--danger); } to { text-shadow: 0 0 20px var(--danger), 0 0 30px #ff0000; } }
-
         .alert-banner { display: none; background: rgba(255, 51, 51, 0.2); border: 1px solid var(--danger); color: var(--danger); padding: 6px; border-radius: 5px; text-align: center; font-weight: bold; margin-top: 8px; animation: pulse 1s infinite alternate; font-size: 0.9em; }
 
         .category-header {
@@ -141,15 +157,8 @@
         .item-card.active:hover .delete-btn { opacity: 1; pointer-events: auto; transform: scale(1); }
         .delete-btn:hover { transform: scale(1.15) !important; background: #ff0000; }
 
-        .item-recipe {
-            display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; 
-            margin-bottom: 10px; flex-grow: 1; align-content: center;
-        }
-        .item-recipe span {
-            font-size: 0.75em; color: var(--text-muted); background: rgba(0, 0, 0, 0.4);
-            padding: 2px 5px; border-radius: 4px; border: 1px solid rgba(255, 255, 255, 0.1);
-            white-space: nowrap;
-        }
+        .item-recipe { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; margin-bottom: 10px; flex-grow: 1; align-content: center; }
+        .item-recipe span { font-size: 0.75em; color: var(--text-muted); background: rgba(0, 0, 0, 0.4); padding: 2px 5px; border-radius: 4px; border: 1px solid rgba(255, 255, 255, 0.1); white-space: nowrap; }
 
         .qty-controls { display: flex; justify-content: center; align-items: center; gap: 5px; }
         .btn-icon { background: var(--bg-ocean); color: var(--text-main); border: 1px solid var(--text-muted); width: 28px; height: 28px; border-radius: 5px; cursor: pointer; font-size: 1.2em; display: flex; align-items: center; justify-content: center; }
@@ -206,24 +215,37 @@
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: var(--text-muted); border-radius: 10px; }
 
-        /* ESTILOS DE LA MARCA DE AGUA */
+        /* MARCA DE AGUA INYECTADA DIRECTAMENTE */
         .pda-watermark {
-            position: fixed;
-            bottom: 5px;
-            right: 10px;
-            font-size: 12px;
-            font-weight: bold;
-            letter-spacing: 1px;
-            color: rgba(0, 255, 204, 0.3); /* Semi-transparente */
-            z-index: 9999; /* Por encima de todo */
-            pointer-events: none; /* No interfiere con clics */
-            text-transform: uppercase;
+            position: fixed; bottom: 5px; right: 10px; font-size: 12px; font-weight: bold;
+            letter-spacing: 1px; color: rgba(0, 255, 204, 0.3); z-index: 9999;
+            pointer-events: none; text-transform: uppercase;
         }
     </style>
 </head>
 <body>
 
+    <input type="file" id="file-upload-input" style="display:none" accept=".json" onchange="loadFromFile(event)">
+
     <div class="pda-watermark">xTFEXx</div>
+
+    <div id="save-modal" class="modal-overlay" style="display:none;">
+        <div class="glass-panel modal-content">
+            <div class="header-row" style="margin-bottom: 20px;">
+                <h2 style="color:var(--warning);">💾 Gestor de Planos</h2>
+                <span class="search-icon" onclick="closeSaveManager()" title="Cerrar">✖</span>
+            </div>
+            
+            <div style="display:flex; gap:10px; margin-bottom: 20px;">
+                <input type="text" id="new-save-name" class="modal-input" placeholder="Nombre de la base...">
+                <button class="btn-action" style="flex: 0 0 auto;" onclick="saveCurrentToLocal()">Guardar Actual</button>
+            </div>
+            
+            <h3>Bases en Memoria Local</h3>
+            <div id="local-saves-list" style="overflow-y:auto; max-height:250px; padding-right:5px;">
+                </div>
+        </div>
+    </div>
 
     <div class="glass-panel catalog-container">
         <div class="header-row">
@@ -238,11 +260,12 @@
 
     <div class="side-panel">
         <div class="glass-panel" style="flex: 0 0 auto;">
+            
             <div class="action-bar">
                 <button class="btn-action btn-danger" onclick="resetPlan()">↻ Reiniciar</button>
+                <button class="btn-action" onclick="openSaveManager()">💾 Gestor de Planos</button>
                 <button class="btn-action" onclick="saveToFile()">↓ Guardar Base</button>
-                <button class="btn-action" onclick="document.getElementById('file-upload').click()">↑ Cargar Base</button>
-                <input type="file" id="file-upload" style="display:none" accept=".json" onchange="loadFromFile(event)">
+                <button class="btn-action" onclick="document.getElementById('file-upload-input').click()">↑ Cargar Base</button>
             </div>
 
             <h2>Telemetría de Base</h2>
@@ -406,6 +429,7 @@
 
         let cart = {};
         let holdInterval;
+        let alterra_saves = JSON.parse(localStorage.getItem("alterra_saves")) || {};
 
         function init() { renderCatalog(); updateTotals(); }
 
@@ -461,9 +485,79 @@
             });
         }
 
-        // --- MANEJO DE ARCHIVOS ---
+        // --- MANEJO DE ARCHIVOS Y GUARDADO LOCAL ---
+        function openSaveManager() {
+            document.getElementById("save-modal").style.display = "flex";
+            renderSavesList();
+        }
+        function closeSaveManager() {
+            document.getElementById("save-modal").style.display = "none";
+        }
+
+        function renderSavesList() {
+            const listContainer = document.getElementById("local-saves-list");
+            listContainer.innerHTML = "";
+            const saveKeys = Object.keys(alterra_saves);
+
+            if(saveKeys.length === 0) {
+                listContainer.innerHTML = "<p style='color:gray; font-style:italic;'>No hay bases guardadas en la memoria local.</p>";
+                return;
+            }
+
+            saveKeys.forEach(name => {
+                const div = document.createElement("div");
+                div.className = "save-item";
+                div.innerHTML = `
+                    <div class="save-item-name" title="${name}">${name}</div>
+                    <div class="save-item-actions">
+                        <button class="btn-small" onclick="loadFromLocal('${name}')" title="Cargar Base">Cargar</button>
+                        <button class="btn-small danger" onclick="deleteFromLocal('${name}')" title="Eliminar">❌</button>
+                    </div>
+                `;
+                listContainer.appendChild(div);
+            });
+        }
+
+        function saveCurrentToLocal() {
+            const input = document.getElementById("new-save-name");
+            const name = input.value.trim();
+            if(!name) {
+                alert("Por favor, ingresa un nombre para la base.");
+                return;
+            }
+
+            alterra_saves[name] = {
+                depth: document.getElementById("base-depth").value,
+                cart: cart
+            };
+            localStorage.setItem("alterra_saves", JSON.stringify(alterra_saves));
+            input.value = "";
+            renderSavesList();
+        }
+
+        function loadFromLocal(name) {
+            if(confirm(`¿Cargar el plano "${name}" en pantalla? Se perderá tu progreso actual si no lo has guardado.`)){
+                const savedData = alterra_saves[name];
+                cart = savedData.cart || {};
+                document.getElementById("base-depth").value = savedData.depth || 0;
+                
+                document.getElementById("catalog-content").innerHTML = "";
+                renderCatalog();
+                updateTotals();
+                closeSaveManager();
+            }
+        }
+
+        function deleteFromLocal(name) {
+            if(confirm(`¿Estás seguro de eliminar "${name}" permanentemente de la memoria local?`)){
+                delete alterra_saves[name];
+                localStorage.setItem("alterra_saves", JSON.stringify(alterra_saves));
+                renderSavesList();
+            }
+        }
+
         function resetPlan() {
-            if (confirm("⚠️ ALERTA DE ALTERRA: ¿Estás seguro de que deseas formatear todos los planos actuales? Esta acción no se puede deshacer.")) {
+            if (confirm("⚠️ ALERTA DE ALTERRA: ¿Estás seguro de que deseas formatear todos los planos actuales de la pantalla? Esta acción no borra tus guardados.")) {
                 cart = {};
                 document.getElementById("base-depth").value = 0;
                 document.getElementById("catalog-content").innerHTML = "";
@@ -473,15 +567,10 @@
         }
 
         function saveToFile() {
-            let filename = prompt("Nombre de la base para guardar:", "Base_Subnautica");
+            let filename = prompt("Nombre de la base para descargar:", "Base_Subnautica");
             
-            if (filename === null || filename.trim() === "") {
-                return;
-            }
-
-            if (!filename.toLowerCase().endsWith(".json")) {
-                filename += ".json";
-            }
+            if (filename === null || filename.trim() === "") return;
+            if (!filename.toLowerCase().endsWith(".json")) filename += ".json";
 
             const dataToSave = {
                 depth: document.getElementById("base-depth").value,
@@ -504,18 +593,22 @@
             reader.onload = function(e) {
                 try {
                     const loadedData = JSON.parse(e.target.result);
+                    
+                    // Carga el archivo a la pantalla principal de forma directa
                     cart = loadedData.cart || {};
                     document.getElementById("base-depth").value = loadedData.depth || 0;
                     
                     document.getElementById("catalog-content").innerHTML = "";
                     renderCatalog();
                     updateTotals();
+                    
+                    alert(`Archivo "${file.name}" cargado exitosamente en la pantalla principal.`);
                 } catch (error) {
-                    alert("ERROR: El archivo está corrupto o no es un esquema válido de Alterra.");
+                    alert("ERROR CRÍTICO: El archivo está corrupto o no es un esquema válido de Alterra.");
                 }
             };
             reader.readAsText(file);
-            event.target.value = ""; 
+            event.target.value = ""; // Resetea el input para poder subir el mismo archivo dos veces
         }
 
         // --- RENDERIZADO DEL CATÁLOGO ---
@@ -743,5 +836,4 @@
         window.onload = init;
     </script>
 </body>
-
 </html>
