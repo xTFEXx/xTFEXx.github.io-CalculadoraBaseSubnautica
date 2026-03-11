@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alterra PDA - Base de Datos Maestra</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&display=swap');
+
+        :root {
+            --bg-ocean: #06101e;
+            --panel-bg: rgba(16, 33, 58, 0.75);
+            --panel-border: rgba(0, 255, 204, 0.2);
+            --accent: #00ffcc;
+            --text-main: #e2f1f8;
+            --text-muted: #8ab4f8;
+            --danger: #ff3333;
+            --warning: #ffb703;
+            --safe: #33ff77;
+            --direct-color: #f72585;
+            --vehicle-color: #ffd166;
+            --misc-color: #c77dff;
+        }
+
+        body {
+            font-family: 'Rajdhani', sans-serif;
+            background: radial-gradient(circle at top, #0f2b4d, var(--bg-ocean) 80%);
+            color: var(--text-main);
+            margin: 0;
+            padding: 2vh 2vw;
+            display: flex;
+            gap: 20px;
+            height: 96vh;
+            overflow: hidden;
+            user-select: none;
+            position: relative; /* Necesario para la marca de agua */
+        }
+
+        h1, h2, h3 { color: var(--accent); margin: 0 0 10px 0; text-transform: uppercase; letter-spacing: 1px; }
+        h3 { font-size: 1.1em; color: var(--text-muted); border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px; }
+
+        .glass-panel {
+            background: var(--panel-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--panel-border);
+            border-radius: 12px;
+            padding: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .catalog-container { flex: 2; overflow-y: auto; scroll-behavior: smooth; position: relative; }
+        .side-panel { flex: 1.4; display: flex; flex-direction: column; gap: 15px; overflow-y: auto; }
+        
+        /* --- ESTILOS DE BARRA DE BÚSQUEDA --- */
+        .header-row { 
+            display: flex; justify-content: space-between; align-items: center; 
+            margin-bottom: 10px; gap: 15px; 
+        }
+        .header-row h1, .header-row h2 { 
+            margin: 0; 
+            white-space: nowrap; 
+            overflow: hidden; 
+            text-overflow: ellipsis; 
+        }
+        .header-row h2 { font-size: 1.3em; }
+
+        .search-wrapper { display: flex; align-items: center; position: relative; height: 40px; }
+        
+        .search-icon { 
+            cursor: pointer; font-size: 1.5em; color: var(--accent); 
+            transition: transform 0.2s; user-select: none; z-index: 10;
+        }
+        .search-icon:hover { transform: scale(1.1); text-shadow: 0 0 10px var(--accent); }
+        
+        .search-input {
+            width: 0; opacity: 0; transition: width 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s;
+            border: none; border-bottom: 2px solid var(--accent); 
+            background: var(--bg-ocean); 
+            color: var(--text-main); font-family: 'Rajdhani', sans-serif; font-size: 1.1em;
+            position: absolute; right: 40px; pointer-events: none; padding: 5px 10px;
+            z-index: 5; border-radius: 4px 4px 0 0;
+            box-shadow: -5px 0 15px rgba(6, 16, 30, 0.9); 
+        }
+        .search-input:focus { outline: none; background: #0a192f; }
+        .search-input.active { width: 140px; opacity: 1; pointer-events: auto; } 
+        
+        .category-group { margin-bottom: 10px; }
+
+        /* --- RESTO DE ESTILOS --- */
+        .action-bar { display: flex; gap: 10px; margin-bottom: 15px; }
+        .btn-action {
+            background: rgba(0, 255, 204, 0.1); border: 1px solid var(--accent); color: var(--accent);
+            padding: 8px 12px; border-radius: 5px; cursor: pointer; font-family: 'Rajdhani', sans-serif;
+            font-weight: bold; text-transform: uppercase; flex: 1; transition: 0.2s; font-size: 0.9em;
+        }
+        .btn-action:hover { background: var(--accent); color: #000; }
+        .btn-danger { border-color: var(--danger); color: var(--danger); background: rgba(255,51,51,0.1); }
+        .btn-danger:hover { background: var(--danger); color: #fff; }
+
+        .status-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 10px; }
+        .status-box { background: rgba(0, 0, 0, 0.4); border: 1px solid var(--panel-border); border-radius: 8px; padding: 10px 5px; text-align: center; }
+        .status-value { font-size: 1.3em; font-weight: 700; margin: 5px 0; }
+        .status-label { font-size: 0.75em; color: var(--text-muted); text-transform: uppercase; line-height: 1.1; }
+
+        .safe-text { color: var(--safe); }
+        .danger-text { color: var(--danger); animation: pulse 1s infinite alternate; }
+        .warning-text { color: var(--warning); }
+        .neutral-text { color: var(--text-main); }
+
+        @keyframes pulse { from { text-shadow: 0 0 5px var(--danger); } to { text-shadow: 0 0 20px var(--danger), 0 0 30px #ff0000; } }
+
+        .alert-banner { display: none; background: rgba(255, 51, 51, 0.2); border: 1px solid var(--danger); color: var(--danger); padding: 6px; border-radius: 5px; text-align: center; font-weight: bold; margin-top: 8px; animation: pulse 1s infinite alternate; font-size: 0.9em; }
+
+        .category-header {
+            background: #06101e; padding: 8px 15px; border-left: 4px solid var(--accent);
+            position: sticky; top: 0; z-index: 10; margin: 15px 0 10px 0; border-radius: 0 8px 8px 0;
+            font-size: 1.1em; font-weight: 700;
+        }
+        .category-header:first-child { margin-top: 0; }
+        .category-vehiculos { border-left-color: var(--vehicle-color); color: var(--vehicle-color); }
+        .category-miscelaneos { border-left-color: var(--misc-color); color: var(--misc-color); }
+
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
+
+        .item-card {
+            background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px; padding: 12px 8px 10px 8px; text-align: center; transition: all 0.2s ease;
+            display: flex; flex-direction: column; justify-content: space-between; min-height: 85px; position: relative;
+        }
+        .item-card.active { border-color: var(--accent); background: rgba(0, 255, 204, 0.05); }
+        .item-name { font-size: 1em; font-weight: 600; margin-bottom: 5px; pointer-events: none; line-height: 1.1; }
+
+        .delete-btn {
+            position: absolute; top: -8px; right: -8px; background: var(--danger); color: white;
+            border: 1px solid #fff; border-radius: 50%; width: 22px; height: 22px; cursor: pointer;
+            font-size: 12px; font-weight: bold; display: flex; justify-content: center; align-items: center;
+            opacity: 0; pointer-events: none; transition: 0.2s; z-index: 5; box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+        }
+        .item-card.active:hover .delete-btn { opacity: 1; pointer-events: auto; transform: scale(1); }
+        .delete-btn:hover { transform: scale(1.15) !important; background: #ff0000; }
+
+        .item-recipe {
+            display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; 
+            margin-bottom: 10px; flex-grow: 1; align-content: center;
+        }
+        .item-recipe span {
+            font-size: 0.75em; color: var(--text-muted); background: rgba(0, 0, 0, 0.4);
+            padding: 2px 5px; border-radius: 4px; border: 1px solid rgba(255, 255, 255, 0.1);
+            white-space: nowrap;
+        }
+
+        .qty-controls { display: flex; justify-content: center; align-items: center; gap: 5px; }
+        .btn-icon { background: var(--bg-ocean); color: var(--text-main); border: 1px solid var(--text-muted); width: 28px; height: 28px; border-radius: 5px; cursor: pointer; font-size: 1.2em; display: flex; align-items: center; justify-content: center; }
+        .btn-icon:hover { background: var(--accent); color: #000; border-color: var(--accent); }
+        .btn-icon:active { transform: scale(0.9); }
+
+        .qty-input { width: 35px; height: 28px; background: transparent; border: none; color: var(--warning); font-size: 1.1em; font-weight: bold; text-align: center; font-family: 'Rajdhani', sans-serif; }
+        .qty-input:focus { outline: none; border-bottom: 1px solid var(--accent); }
+        .qty-input::-webkit-outer-spin-button, .qty-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
+        .depth-input {
+            width: 80%; height: 28px; background: rgba(0, 0, 0, 0.3); border: 1px solid var(--panel-border); 
+            color: var(--accent); font-size: 1.2em; font-weight: bold; text-align: center; 
+            font-family: 'Rajdhani', sans-serif; border-radius: 4px; 
+            margin: 5px auto 0 auto; display: block; transition: 0.2s;
+        }
+        .depth-input:focus { outline: none; border-color: var(--warning); color: var(--warning); }
+        .depth-input::-webkit-outer-spin-button, .depth-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
+        .materials-split { display: flex; gap: 15px; flex: 1; overflow-y: auto; }
+        .materials-column { flex: 1; display: flex; flex-direction: column; }
+        .materials-list { display: flex; flex-wrap: wrap; gap: 6px; align-content: flex-start; }
+        
+        .material-badge { padding: 5px 10px; border-radius: 15px; font-weight: 600; font-size: 0.9em; background: rgba(0, 255, 204, 0.1); border: 1px solid var(--accent); color: var(--accent); }
+        .material-badge.direct { background: rgba(247, 37, 133, 0.15); border: 1px solid var(--direct-color); color: #ff7eb3; }
+
+        #tree-container { font-size: 0.95em; padding-left: 5px; margin-top: 5px; }
+        ul.tree { list-style-type: none; padding-left: 25px; margin: 0; }
+        ul.tree li { margin: 0; padding: 4px 0; position: relative; font-size: 1em; display: block; }
+        
+        ul.tree li::before { 
+            content: ""; position: absolute; top: 0; bottom: 0; left: -15px; 
+            border-left: 2px dashed rgba(247, 37, 133, 0.7); 
+        }
+        ul.tree li::after { 
+            content: ""; position: absolute; top: 16px; left: -15px; width: 15px; 
+            border-top: 2px dashed rgba(247, 37, 133, 0.7); 
+        }
+        ul.tree li:last-child::before { bottom: auto; height: 16px; }
+        
+        ul.tree-root { padding-left: 0; margin-left: 0; }
+        ul.tree-root > li { padding: 5px 0 15px 0; }
+        ul.tree-root > li::before, ul.tree-root > li::after { display: none; }
+        
+        ul.tree-root > li > ul.tree > li::before { border-left: 2px solid rgba(255, 183, 3, 0.6); }
+        ul.tree-root > li > ul.tree > li::after { border-top: 2px solid rgba(255, 183, 3, 0.6); }
+        
+        .node-box { display: inline-block; padding: 5px 10px; border-radius: 15px; font-weight: 600; line-height: 1.2; letter-spacing: 0.5px; font-size: 0.9em; }
+        .final-node { background: rgba(255, 183, 3, 0.15); border: 1px solid var(--warning); color: var(--warning); font-size: 1em; }
+        .intermediate-node { background: rgba(247, 37, 133, 0.15); border: 1px solid var(--direct-color); color: #ff7eb3; }
+        .raw-leaf { background: rgba(0, 255, 204, 0.1); border: 1px solid var(--accent); color: var(--accent); }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--text-muted); border-radius: 10px; }
+
+        /* ESTILOS DE LA MARCA DE AGUA */
+        .pda-watermark {
+            position: fixed;
+            bottom: 5px;
+            right: 10px;
+            font-size: 12px;
+            font-weight: bold;
+            letter-spacing: 1px;
+            color: rgba(0, 255, 204, 0.3); /* Semi-transparente */
+            z-index: 9999; /* Por encima de todo */
+            pointer-events: none; /* No interfiere con clics */
+            text-transform: uppercase;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="pda-watermark">xTFEXx</div>
+
+    <div class="glass-panel catalog-container">
+        <div class="header-row">
+            <h1>Constructor de Hábitats</h1>
+            <div class="search-wrapper">
+                <input type="text" id="search-input" class="search-input" placeholder="Buscar planos..." oninput="filterCatalog()">
+                <span class="search-icon" onclick="toggleSearch('search-input')" title="Buscar">🔍</span>
+            </div>
+        </div>
+        <div id="catalog-content"></div>
+    </div>
+
+    <div class="side-panel">
+        <div class="glass-panel" style="flex: 0 0 auto;">
+            <div class="action-bar">
+                <button class="btn-action btn-danger" onclick="resetPlan()">↻ Reiniciar</button>
+                <button class="btn-action" onclick="saveToFile()">↓ Guardar Base</button>
+                <button class="btn-action" onclick="document.getElementById('file-upload').click()">↑ Cargar Base</button>
+                <input type="file" id="file-upload" style="display:none" accept=".json" onchange="loadFromFile(event)">
+            </div>
+
+            <h2>Telemetría de Base</h2>
+            <div class="status-grid">
+                <div class="status-box" id="box-depth">
+                    <div class="status-label">Profundidad (m)</div>
+                    <input type="number" id="base-depth" class="depth-input" value="0" min="0" step="10" oninput="updateTotals()">
+                </div>
+                <div class="status-box" id="box-integrity">
+                    <div class="status-label">Casco</div>
+                    <div class="status-value safe-text" id="val-integrity">10.0</div>
+                </div>
+                <div class="status-box" id="box-capacity">
+                    <div class="status-label">TOTAL</div>
+                    <div class="status-value neutral-text" id="val-capacity">0</div>
+                </div>
+                <div class="status-box" id="box-power">
+                    <div class="status-label">Gen/Uso</div>
+                    <div class="status-value neutral-text" id="val-power">+0 / -0</div>
+                </div>
+                <div class="status-box" id="box-net">
+                    <div class="status-label">Neto (u/s)</div>
+                    <div class="status-value neutral-text" id="val-net">0.00</div>
+                </div>
+            </div>
+            <div id="alert-hull" class="alert-banner">¡ADVERTENCIA: RUPTURA DE CASCO INMINENTE!</div>
+            <div id="alert-power" class="alert-banner">¡ADVERTENCIA: DÉFICIT ENERGÉTICO!</div>
+        </div>
+
+        <div class="glass-panel" style="flex: 1;">
+            <h2>Inventario de Construcción</h2>
+            <div class="materials-split">
+                <div class="materials-column">
+                    <h3>Componentes Finales</h3>
+                    <div id="direct-materials-container" class="materials-list"><span style="color: gray; font-size:0.9em;">Añade módulos...</span></div>
+                </div>
+                <div class="materials-column">
+                    <h3>Desglose Materia Prima</h3>
+                    <div id="raw-materials-container" class="materials-list"><span style="color: gray; font-size:0.9em;">Añade módulos...</span></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="glass-panel" style="flex: 0.8;">
+            <div class="header-row">
+                <h2>ÁRBOL DE FABRICACIÓN</h2>
+                <div class="search-wrapper">
+                    <input type="text" id="tree-search-input" class="search-input" placeholder="Buscar módulos..." oninput="filterTree()">
+                    <span class="search-icon" onclick="toggleSearch('tree-search-input')" title="Buscar en esquemas">🔍</span>
+                </div>
+            </div>
+            <div id="tree-container" style="overflow-y: auto; height: 100%;"><span style="color: gray; font-size:0.9em;">Esperando esquemas...</span></div>
+        </div>
+    </div>
+
+    <script>
+        const intermediateMaterials = {
+            "Lingote de titanio": { "Titanio": 10 },
+            "Lingote de plastiacero": { "Lingote de titanio": 1, "Litio": 2 },
+            "Alambre de cobre": { "Cobre": 2 },
+            "Kit de cableado": { "Plata": 2 },
+            "Kit de cableado avanzado": { "Kit de cableado": 1, "Oro": 2, "Chip de computadora": 1 },
+            "Chip de computadora": { "Muestra de placa de coral": 2, "Oro": 1, "Alambre de cobre": 1 },
+            "Batería": { "Hongo ácido": 2, "Cobre": 1 },
+            "Célula de energía": { "Batería": 2, "Goma de silicona": 1 },
+            "Goma de silicona": { "Semilla de vid de alga": 1 },
+            "Vidrio": { "Cuarzo": 2 },
+            "Vidrio esmaltado": { "Vidrio": 1, "Diente de acechante": 1 },
+            "Aerogel": { "Saco de gel": 1, "Rubí": 1 },
+            "Aceite": { "Semilla de vid de alga": 1 },
+            "Malla de fibra": { "Muestra de vid de alga": 2 }
+        };
+
+        const categoryOrder = [
+            "Piezas de Base",
+            "Módulos Exteriores",
+            "Piezas Interiores",
+            "Módulos Interiores",
+            "Misceláneos",
+            "Flota y vehículos"
+        ];
+
+        const buildables = [
+            { category: "Piezas de Base", name: "Cimiento", recipe: { "Titanio": 2, "Plomo": 2 }, integrity: 2.0 },
+            { category: "Piezas de Base", name: "Compartimento I", recipe: { "Titanio": 2 }, integrity: -1.0 },
+            { category: "Piezas de Base", name: "Compartimento L", recipe: { "Titanio": 2 }, integrity: -1.0 },
+            { category: "Piezas de Base", name: "Compartimento T", recipe: { "Titanio": 3 }, integrity: -1.5 },
+            { category: "Piezas de Base", name: "Compartimento X", recipe: { "Titanio": 3 }, integrity: -2.0 },
+            { category: "Piezas de Base", name: "Compartimento de cristal I", recipe: { "Vidrio": 2 }, integrity: -2.0 },
+            { category: "Piezas de Base", name: "Compartimento de cristal L", recipe: { "Vidrio": 2 }, integrity: -2.0 },
+            { category: "Piezas de Base", name: "Conector vertical", recipe: { "Titanio": 2 }, integrity: -1.0 },
+            { category: "Piezas de Base", name: "Sala multiusos", recipe: { "Titanio": 6 }, integrity: -1.25 },
+            { category: "Piezas de Base", name: "Sala escáner", recipe: { "Titanio": 5, "Cobre": 2, "Oro": 1, "Muestra de placa de coral": 1 }, integrity: -1.0, drainSec: 0.5 },
+            { category: "Piezas de Base", name: "Piscina lunar", recipe: { "Lingote de titanio": 2, "Aceite": 1, "Plomo": 2 }, integrity: -5.0 },
+            { category: "Piezas de Base", name: "Observatorio", recipe: { "Vidrio esmaltado": 2, "Titanio": 1 }, integrity: -3.0 },
+            { category: "Piezas de Base", name: "Habitación grande", recipe: { "Lingote de plastiacero": 2 }, integrity: -2.0 },
+            { category: "Piezas de Base", name: "Cúpula de vidrio para la sala multiusos", recipe: { "Vidrio esmaltado": 2, "Titanio": 2, "Litio": 1 }, integrity: -1.0 },
+            { category: "Piezas de Base", name: "Cúpula de vidrio para la habitación grande", recipe: { "Vidrio esmaltado": 4, "Titanio": 4, "Litio": 2 }, integrity: -1.0 },
+            { category: "Piezas de Base", name: "Escotilla", recipe: { "Cuarzo": 1, "Titanio": 2 }, integrity: -1.0 },
+            { category: "Piezas de Base", name: "Ventana", recipe: { "Vidrio": 1 }, integrity: -1.0 },
+            { category: "Piezas de Base", name: "Refuerzo", recipe: { "Titanio": 3, "Litio": 1 }, integrity: 7.0 },
+
+            { category: "Módulos Exteriores", name: "Panel solar", recipe: { "Cuarzo": 2, "Titanio": 2, "Cobre": 1 }, capacity: 75, genSec: 0.5 },
+            { category: "Módulos Exteriores", name: "Planta térmica", recipe: { "Titanio": 5, "Magnetita": 2, "Aerogel": 1 }, capacity: 250, genSec: 1.0 },
+            { category: "Módulos Exteriores", name: "Transmisor de energía", recipe: { "Oro": 1, "Titanio": 1 } },
+            { category: "Módulos Exteriores", name: "Panel de luces", recipe: { "Titanio": 1, "Vidrio": 1 } },
+            { category: "Módulos Exteriores", name: "Foco", recipe: { "Vidrio": 1, "Titanio": 2 } },
+            { category: "Módulos Exteriores", name: "Huerto", recipe: { "Titanio": 2 } },
+            { category: "Módulos Exteriores", name: "Bomba de aire de base", recipe: { "Titanio": 2 } },
+
+            { category: "Piezas Interiores", name: "Escalera", recipe: { "Titanio": 2 } },
+            { category: "Piezas Interiores", name: "Depurador de agua", recipe: { "Titanio": 3, "Alambre de cobre": 1, "Aerogel": 1 }, drainSec: 0.85 },
+            { category: "Piezas Interiores", name: "Mamparo", recipe: { "Titanio": 3, "Goma de silicona": 1 }, integrity: 3.0 },
+            { category: "Piezas Interiores", name: "Consola de mejora de vehículo", recipe: { "Titanio": 3, "Chip de computadora": 1, "Alambre de cobre": 1 } },
+            { category: "Piezas Interiores", name: "Pared partitiva para la habitación grande", recipe: { "Titanio": 1 } },
+            { category: "Piezas Interiores", name: "Puerta para la pared partitiva de la habitación grande", recipe: { "Titanio": 1, "Cuarzo": 1 } },
+            { category: "Piezas Interiores", name: "Biorreactor", recipe: { "Titanio": 3, "Kit de cableado": 1, "Aceite": 1 }, capacity: 500, genSec: 0.83 },
+            { category: "Piezas Interiores", name: "Reactor nuclear", recipe: { "Lingote de plastiacero": 1, "Kit de cableado avanzado": 1, "Plomo": 3 }, capacity: 2500, genSec: 4.16 },
+            { category: "Piezas Interiores", name: "Acuario alienígena", recipe: { "Vidrio": 5, "Titanio": 2 } },
+
+            { category: "Módulos Interiores", name: "Fabricador", recipe: { "Titanio": 1, "Oro": 1, "Muestra de placa de coral": 1 } },
+            { category: "Módulos Interiores", name: "Radio", recipe: { "Titanio": 1, "Cobre": 1 } },
+            { category: "Módulos Interiores", name: "Fabricador médico", recipe: { "Chip de computadora": 1, "Malla de fibra": 1, "Plata": 1, "Titanio": 1 } },
+            { category: "Módulos Interiores", name: "Taquilla de pared", recipe: { "Titanio": 2 } },
+            { category: "Módulos Interiores", name: "Taquilla", recipe: { "Titanio": 2, "Cuarzo": 1 } },
+            { category: "Módulos Interiores", name: "Cargador de baterías", recipe: { "Kit de cableado": 1, "Alambre de cobre": 1, "Titanio": 1 } },
+            { category: "Módulos Interiores", name: "Cargador de células de energía", recipe: { "Kit de cableado avanzado": 1, "Rubí": 2, "Titanio": 2 } },
+            { category: "Módulos Interiores", name: "Acuario", recipe: { "Vidrio": 2, "Titanio": 1 } },
+            { category: "Módulos Interiores", name: "Estación de modificación", recipe: { "Chip de computadora": 1, "Titanio": 1, "Diamante": 1, "Plomo": 1 } },
+            { category: "Módulos Interiores", name: "Maceta básica", recipe: { "Titanio": 2 } },
+            { category: "Módulos Interiores", name: "Maceta compuesta", recipe: { "Titanio": 2 } },
+            { category: "Módulos Interiores", name: "Maceta elegante", recipe: { "Titanio": 2 } },
+            { category: "Módulos Interiores", name: "Jardinera de interior", recipe: { "Titanio": 4 } },
+            { category: "Módulos Interiores", name: "Maceta estante", recipe: { "Titanio": 1 } },
+
+            { category: "Misceláneos", name: "Banco", recipe: { "Titanio": 2 } },
+            { category: "Misceláneos", name: "Cama de matrimonio Básica", recipe: { "Titanio": 2, "Malla de fibra": 1 } },
+            { category: "Misceláneos", name: "Cama de matrimonio acolchada", recipe: { "Titanio": 2, "Malla de fibra": 1 } },
+            { category: "Misceláneos", name: "Cama individual", recipe: { "Titanio": 1, "Malla de fibra": 1 } },
+            { category: "Misceláneos", name: "Escritorio", recipe: { "Titanio": 1 } },
+            { category: "Misceláneos", name: "Silla rotatoria", recipe: { "Titanio": 1 } },
+            { category: "Misceláneos", name: "Silla de oficina", recipe: { "Titanio": 1 } },
+            { category: "Misceláneos", name: "Silla de mando", recipe: { "Titanio": 1 } },
+            { category: "Misceláneos", name: "Cartel", recipe: { "Alambre de cobre": 1 } },
+            { category: "Misceláneos", name: "Marco de fotos", recipe: { "Alambre de cobre": 1 } },
+            { category: "Misceláneos", name: "Mesa de bar", recipe: { "Titanio": 1, "Vidrio": 1 } },
+            { category: "Misceláneos", name: "Papelera", recipe: { "Titanio": 2 } },
+            { category: "Misceláneos", name: "Disponer residuos nucleares", recipe: { "Titanio": 2 } },
+            { category: "Misceláneos", name: "Máquina expendedora", recipe: { "Vidrio": 1, "Titanio": 2 } },
+            { category: "Misceláneos", name: "Máquina de café", recipe: { "Titanio": 2 } },
+            { category: "Misceláneos", name: "Encimera", recipe: { "Titanio": 2 } },
+            { category: "Misceláneos", name: "Maceta de pared", recipe: { "Titanio": 1 } },
+            { category: "Misceláneos", name: "Estante", recipe: { "Titanio": 1 } },
+            { category: "Misceláneos", name: "Estanterías", recipe: { "Titanio": 2 } },
+
+            { category: "Flota y vehículos", name: "Bahía de Vehículos", recipe: { "Lingote de titanio": 1, "Aceite": 1, "Célula de energía": 1 } },
+            { category: "Flota y vehículos", name: "Seamoth", recipe: { "Lingote de titanio": 1, "Célula de energía": 1, "Vidrio": 2, "Aceite": 1, "Plomo": 1 } },
+            { category: "Flota y vehículos", name: "Traje PRAWN", recipe: { "Lingote de plastiacero": 2, "Aerogel": 2, "Vidrio esmaltado": 1, "Diamante": 2, "Plomo": 2 } },
+            { category: "Flota y vehículos", name: "Cyclops", recipe: { "Lingote de plastiacero": 3, "Vidrio esmaltado": 3, "Aceite": 1, "Kit de cableado avanzado": 1, "Plomo": 3 } }
+        ];
+
+        let cart = {};
+        let holdInterval;
+
+        function init() { renderCatalog(); updateTotals(); }
+
+        // --- SISTEMA DE BÚSQUEDA ---
+        function toggleSearch(inputId) {
+            const input = document.getElementById(inputId);
+            input.classList.toggle("active");
+            if (input.classList.contains("active")) {
+                input.focus();
+            } else {
+                input.value = "";
+                if(inputId === 'search-input') filterCatalog();
+                if(inputId === 'tree-search-input') filterTree();
+            }
+        }
+
+        function filterCatalog() {
+            const query = document.getElementById("search-input").value.toLowerCase();
+            const groups = document.querySelectorAll(".category-group");
+
+            groups.forEach(group => {
+                const cards = group.querySelectorAll(".item-card");
+                let hasMatch = false;
+
+                cards.forEach(card => {
+                    const name = card.querySelector(".item-name").innerText.toLowerCase();
+                    if (name.includes(query)) {
+                        card.style.display = "flex";
+                        hasMatch = true;
+                    } else {
+                        card.style.display = "none";
+                    }
+                });
+
+                group.style.display = hasMatch ? "block" : "none";
+            });
+        }
+
+        function filterTree() {
+            const query = document.getElementById("tree-search-input").value.toLowerCase();
+            const rootItems = document.querySelectorAll("#tree-container > ul.tree-root > li");
+
+            rootItems.forEach(item => {
+                const node = item.querySelector(".final-node");
+                if (node) {
+                    const text = node.innerText.toLowerCase();
+                    if (text.includes(query)) {
+                        item.style.display = "block";
+                    } else {
+                        item.style.display = "none";
+                    }
+                }
+            });
+        }
+
+        // --- MANEJO DE ARCHIVOS ---
+        function resetPlan() {
+            if (confirm("⚠️ ALERTA DE ALTERRA: ¿Estás seguro de que deseas formatear todos los planos actuales? Esta acción no se puede deshacer.")) {
+                cart = {};
+                document.getElementById("base-depth").value = 0;
+                document.getElementById("catalog-content").innerHTML = "";
+                renderCatalog();
+                updateTotals();
+            }
+        }
+
+        function saveToFile() {
+            let filename = prompt("Nombre de la base para guardar:", "Base_Subnautica");
+            
+            if (filename === null || filename.trim() === "") {
+                return;
+            }
+
+            if (!filename.toLowerCase().endsWith(".json")) {
+                filename += ".json";
+            }
+
+            const dataToSave = {
+                depth: document.getElementById("base-depth").value,
+                cart: cart
+            };
+            const blob = new Blob([JSON.stringify(dataToSave, null, 2)], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = filename;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function loadFromFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const loadedData = JSON.parse(e.target.result);
+                    cart = loadedData.cart || {};
+                    document.getElementById("base-depth").value = loadedData.depth || 0;
+                    
+                    document.getElementById("catalog-content").innerHTML = "";
+                    renderCatalog();
+                    updateTotals();
+                } catch (error) {
+                    alert("ERROR: El archivo está corrupto o no es un esquema válido de Alterra.");
+                }
+            };
+            reader.readAsText(file);
+            event.target.value = ""; 
+        }
+
+        // --- RENDERIZADO DEL CATÁLOGO ---
+        function renderCatalog() {
+            const container = document.getElementById("catalog-content");
+
+            categoryOrder.forEach(category => {
+                const groupDiv = document.createElement("div");
+                groupDiv.className = "category-group";
+                
+                const header = document.createElement("div"); 
+                header.className = "category-header"; 
+                if(category === "Flota y vehículos") header.classList.add("category-vehiculos");
+                if(category === "Misceláneos") header.classList.add("category-miscelaneos");
+                header.innerText = category;
+                groupDiv.appendChild(header);
+
+                const grid = document.createElement("div"); grid.className = "grid";
+
+                const items = buildables.filter(b => b.category === category);
+                items.forEach((item, index) => {
+                    const safeId = `item-${index}-${item.name.replace(/[\s\/()]/g, '')}`;
+                    const card = document.createElement("div");
+                    
+                    const currentQty = cart[item.name] || 0;
+                    card.className = `item-card ${currentQty > 0 ? 'active' : ''}`; 
+                    card.id = safeId;
+                    
+                    let recipeHTML = '<div class="item-recipe">';
+                    for (let mat in item.recipe) {
+                        recipeHTML += `<span>${item.recipe[mat]}x ${mat}</span>`;
+                    }
+                    recipeHTML += '</div>';
+                    
+                    card.innerHTML = `
+                        <button class="delete-btn" onclick="deleteItem(event, '${item.name}', '${safeId}')" title="Eliminar este objeto">✕</button>
+                        <div class="item-name">${item.name}</div>
+                        ${recipeHTML}
+                        <div class="qty-controls">
+                            <button class="btn-icon" onmousedown="startHold(-1, '${item.name}', '${safeId}')" onmouseup="stopHold()" onmouseleave="stopHold()" ontouchstart="startHold(-1, '${item.name}', '${safeId}')" ontouchend="stopHold()">-</button>
+                            <input type="number" class="qty-input" id="qty-${safeId}" value="${currentQty}" min="0" oninput="manualInput('${item.name}', '${safeId}', this.value)">
+                            <button class="btn-icon" onmousedown="startHold(1, '${item.name}', '${safeId}')" onmouseup="stopHold()" onmouseleave="stopHold()" ontouchstart="startHold(1, '${item.name}', '${safeId}')" ontouchend="stopHold()">+</button>
+                        </div>
+                    `;
+                    grid.appendChild(card);
+                });
+                
+                groupDiv.appendChild(grid);
+                container.appendChild(groupDiv);
+            });
+        }
+
+        // --- SISTEMA DE CARRITO ---
+        function changeQty(amount, itemName, cardId) {
+            let current = cart[itemName] || 0;
+            current += amount;
+            if (current < 0) current = 0;
+            cart[itemName] = current;
+            if (current === 0) delete cart[itemName];
+            updateCardUI(cardId, current);
+            updateTotals();
+        }
+
+        function deleteItem(event, itemName, cardId) {
+            event.stopPropagation();
+            delete cart[itemName];
+            updateCardUI(cardId, 0);
+            updateTotals();
+        }
+
+        function startHold(amount, itemName, cardId) {
+            changeQty(amount, itemName, cardId);
+            holdInterval = setInterval(() => changeQty(amount, itemName, cardId), 120);
+        }
+
+        function stopHold() { clearInterval(holdInterval); }
+
+        function manualInput(itemName, cardId, value) {
+            let num = parseInt(value);
+            if (isNaN(num) || num < 0) num = 0;
+            cart[itemName] = num;
+            if (num === 0) delete cart[itemName];
+            updateCardUI(cardId, num);
+            updateTotals();
+        }
+
+        function updateCardUI(cardId, qty) {
+            const card = document.getElementById(cardId);
+            const input = document.getElementById(`qty-${cardId}`);
+            if(input.value != qty) input.value = qty;
+            if (qty > 0) card.classList.add("active"); else card.classList.remove("active");
+        }
+
+        // --- MATEMÁTICAS Y ÁRBOL ---
+        function updateTotals() {
+            let directTotals = {};
+            let rawTotals = {};
+            let treeHTML = '<ul class="tree tree-root">';
+            
+            let depth = parseFloat(document.getElementById("base-depth").value) || 0;
+            let depthMultiplier = Math.max(1, depth / 100);
+
+            let totalIntegrity = 10.0;
+            let totalCapacity = 0;
+            let totalGenSec = 0;
+            let totalDrainSec = 0;
+
+            const keys = Object.keys(cart);
+
+            keys.forEach(itemName => {
+                const qty = cart[itemName];
+                const moduleDef = buildables.find(b => b.name === itemName);
+                
+                if (moduleDef.integrity) {
+                    if (moduleDef.integrity < 0) totalIntegrity += (moduleDef.integrity * depthMultiplier * qty);
+                    else totalIntegrity += (moduleDef.integrity * qty);
+                }
+                
+                if (moduleDef.capacity) totalCapacity += (moduleDef.capacity * qty);
+                if (moduleDef.genSec) totalGenSec += (moduleDef.genSec * qty);
+                if (moduleDef.drainSec) totalDrainSec += (moduleDef.drainSec * qty);
+
+                treeHTML += `<li><span class="node-box final-node">${qty}x <span class="tree-item-name">${itemName}</span></span> <ul class="tree">`;
+                for (let material in moduleDef.recipe) {
+                    const matQty = moduleDef.recipe[material] * qty;
+                    directTotals[material] = (directTotals[material] || 0) + matQty;
+                    getRawMaterials(material, matQty, rawTotals);
+                    treeHTML += generateTreeHTML(material, matQty);
+                }
+                treeHTML += `</ul></li>`;
+            });
+            treeHTML += '</ul>';
+
+            const directContainer = document.getElementById("direct-materials-container");
+            const rawContainer = document.getElementById("raw-materials-container");
+            
+            if (keys.length === 0) {
+                directContainer.innerHTML = '<span style="color: gray; font-size:0.9em;">Añade módulos...</span>';
+                rawContainer.innerHTML = '<span style="color: gray; font-size:0.9em;">Añade módulos...</span>';
+                document.getElementById("tree-container").innerHTML = '<span style="color: gray; font-size:0.9em;">Esperando esquemas...</span>';
+            } else {
+                document.getElementById("tree-container").innerHTML = treeHTML;
+                
+                directContainer.innerHTML = "";
+                for (let mat in directTotals) {
+                    const badge = document.createElement("span");
+                    badge.className = "material-badge direct";
+                    badge.innerText = `${directTotals[mat]}x ${mat}`;
+                    directContainer.appendChild(badge);
+                }
+
+                rawContainer.innerHTML = "";
+                for (let mat in rawTotals) {
+                    const badge = document.createElement("span");
+                    badge.className = "material-badge";
+                    badge.innerText = `${rawTotals[mat]}x ${mat}`;
+                    rawContainer.appendChild(badge);
+                }
+            }
+
+            updateBaseStatusUI(totalIntegrity, totalCapacity, totalGenSec, totalDrainSec);
+            
+            filterTree();
+        }
+
+        function updateBaseStatusUI(integrity, capacity, gen, drain) {
+            const intVal = document.getElementById("val-integrity");
+            const capVal = document.getElementById("val-capacity");
+            const powVal = document.getElementById("val-power");
+            const netVal = document.getElementById("val-net");
+            const alertHull = document.getElementById("alert-hull");
+            const alertPower = document.getElementById("alert-power");
+
+            intVal.innerText = integrity.toFixed(2);
+            intVal.className = "status-value " + (integrity <= 0 ? "danger-text" : "safe-text");
+            alertHull.style.display = integrity <= 0 ? "block" : "none";
+
+            capVal.innerText = capacity;
+            
+            const formatGen = "+" + gen.toFixed(2);
+            const formatDrain = "-" + drain.toFixed(2);
+            powVal.innerText = `${formatGen} / ${formatDrain}`;
+            
+            const netFlow = gen - drain;
+            const formatNet = (netFlow > 0 ? "+" : "") + netFlow.toFixed(2);
+            netVal.innerText = formatNet;
+
+            if (netFlow < 0) {
+                netVal.className = "status-value warning-text";
+                alertPower.style.display = "block";
+            } else if (netFlow > 0) {
+                netVal.className = "status-value safe-text";
+                alertPower.style.display = "none";
+            } else {
+                netVal.className = "status-value neutral-text";
+                alertPower.style.display = "none";
+            }
+        }
+
+        function getRawMaterials(materialName, quantity, totals) {
+            if (intermediateMaterials[materialName]) {
+                const components = intermediateMaterials[materialName];
+                for (let comp in components) {
+                    getRawMaterials(comp, components[comp] * quantity, totals);
+                }
+            } else {
+                totals[materialName] = (totals[materialName] || 0) + quantity;
+            }
+        }
+
+        function generateTreeHTML(materialName, quantity) {
+            if (intermediateMaterials[materialName]) {
+                let html = `<li><span class="node-box intermediate-node">${quantity}x ${materialName}</span> <ul class="tree">`;
+                const components = intermediateMaterials[materialName];
+                for (let comp in components) {
+                    html += generateTreeHTML(comp, components[comp] * quantity);
+                }
+                html += `</ul></li>`;
+                return html;
+            } else {
+                return `<li><span class="node-box raw-leaf">${quantity}x ${materialName}</span></li>`;
+            }
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
