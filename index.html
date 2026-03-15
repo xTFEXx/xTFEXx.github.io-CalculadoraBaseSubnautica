@@ -41,7 +41,6 @@
             display: flex;
             gap: 20px;
             
-            /* Ajuste matemático perfecto para mantener los bordes intactos con el zoom */
             zoom: var(--device-zoom);
             width: calc(100vw / var(--device-zoom));
             height: calc(100dvh / var(--device-zoom));
@@ -107,10 +106,9 @@
         .btn-danger { border-color: var(--danger); color: var(--danger); background: rgba(255,51,51,0.1); }
         .btn-danger:hover { background: var(--danger); color: #fff; }
 
-        /* --- MODAL DEL GESTOR DE PLANOS CORREGIDO Y CENTRADO --- */
         .modal-overlay {
-            position: absolute; /* Soluciona el desfasaje del zoom */
-            top: -15px; bottom: -15px; left: -20px; right: -20px; /* Cubre el padding del body */
+            position: absolute; 
+            top: -15px; bottom: -15px; left: -20px; right: -20px; 
             background: rgba(0,0,0,0.85); z-index: 2000;
             display: flex; justify-content: center; align-items: center; backdrop-filter: blur(5px);
         }
@@ -168,15 +166,23 @@
             background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.1);
             border-radius: 8px; padding: 15px 10px; text-align: center; transition: all 0.2s ease;
             display: flex; flex-direction: column; align-items: center; justify-content: space-between; 
-            min-height: 190px; position: relative;
+            min-height: 200px; position: relative;
         }
         .item-card.active { border-color: var(--accent); background: rgba(0, 255, 204, 0.05); }
         .item-name { font-size: 1.1em; font-weight: 600; margin-bottom: 8px; pointer-events: none; line-height: 1.1; width: 100%; }
 
         .item-image {
-            width: 70px; height: 70px; object-fit: contain; margin-bottom: 10px;
+            width: 70px; height: 70px; object-fit: contain; margin-bottom: 5px;
             filter: drop-shadow(0 0 5px rgba(0, 255, 204, 0.2)); pointer-events: none;
         }
+
+        /* --- ESTILOS DEL BADGE DE INTEGRIDAD --- */
+        .integrity-badge {
+            font-size: 0.8em; font-weight: bold; padding: 2px 8px; border-radius: 5px;
+            margin-bottom: 8px; display: inline-block; line-height: 1.2;
+        }
+        .integrity-positive { background: rgba(51, 255, 119, 0.15); color: var(--safe); border: 1px solid var(--safe); }
+        .integrity-negative { background: rgba(255, 51, 51, 0.15); color: var(--danger); border: 1px solid var(--danger); }
 
         .delete-btn {
             position: absolute; top: -8px; right: -8px; background: var(--danger); color: white;
@@ -262,7 +268,7 @@
 <body>
 
     <input type="file" id="file-upload-input" style="display:none" accept=".json" onchange="loadFromFile(event)">
-    <div class="pda-watermark">xTFEXx - v1.3.8</div>
+    <div class="pda-watermark">xTFEXx - v1.3.9</div>
 
     <div id="save-modal" class="modal-overlay" style="display:none;">
         <div class="glass-panel modal-content">
@@ -389,22 +395,23 @@
             "Flota y vehículos"
         ];
 
+        // ACTUALIZACIÓN DE VALORES DE INTEGRIDAD
         const buildables = [
             { category: "Piezas de Base", name: "Cimiento", recipe: { "Titanio": 2, "Plomo": 2 }, integrity: 2.0 },
             { category: "Piezas de Base", name: "Compartimento I", recipe: { "Titanio": 2 }, integrity: -1.0 },
             { category: "Piezas de Base", name: "Compartimento L", recipe: { "Titanio": 2 }, integrity: -1.0 },
-            { category: "Piezas de Base", name: "Compartimento T", recipe: { "Titanio": 3 }, integrity: -1.5 },
-            { category: "Piezas de Base", name: "Compartimento X", recipe: { "Titanio": 3 }, integrity: -2.0 },
+            { category: "Piezas de Base", name: "Compartimento T", recipe: { "Titanio": 3 }, integrity: -1.0 },
+            { category: "Piezas de Base", name: "Compartimento X", recipe: { "Titanio": 3 }, integrity: -1.0 },
             { category: "Piezas de Base", name: "Compartimento de cristal I", recipe: { "Vidrio": 2 }, integrity: -2.0 },
             { category: "Piezas de Base", name: "Compartimento de cristal L", recipe: { "Vidrio": 2 }, integrity: -2.0 },
-            { category: "Piezas de Base", name: "Conector vertical", recipe: { "Titanio": 2 }, integrity: -1.0 },
+            { category: "Piezas de Base", name: "Conector vertical", recipe: { "Titanio": 2 }, integrity: -0.5 },
             { category: "Piezas de Base", name: "Sala multiusos", recipe: { "Titanio": 6 }, integrity: -1.25 },
             { category: "Piezas de Base", name: "Sala escáner", recipe: { "Titanio": 5, "Cobre": 2, "Oro": 1, "Muestra de placa de coral": 1 }, integrity: -1.0, drainSec: 0.5 },
             { category: "Piezas de Base", name: "Piscina lunar", recipe: { "Lingote de titanio": 2, "Aceite": 1, "Plomo": 2 }, integrity: -5.0 },
             { category: "Piezas de Base", name: "Observatorio", recipe: { "Vidrio esmaltado": 2, "Titanio": 1 }, integrity: -3.0 },
-            { category: "Piezas de Base", name: "Habitación grande", recipe: { "Lingote de plastiacero": 2 }, integrity: -2.0 },
-            { category: "Piezas de Base", name: "Cúpula de vidrio para la sala multiusos", recipe: { "Vidrio esmaltado": 2, "Titanio": 2, "Litio": 1 }, integrity: -1.0 },
-            { category: "Piezas de Base", name: "Cúpula de vidrio para la habitación grande", recipe: { "Vidrio esmaltado": 4, "Titanio": 4, "Litio": 2 }, integrity: -1.0 },
+            { category: "Piezas de Base", name: "Habitación grande", recipe: { "Lingote de plastiacero": 2 }, integrity: -4.0 },
+            { category: "Piezas de Base", name: "Cúpula de vidrio para la sala multiusos", recipe: { "Vidrio esmaltado": 2, "Titanio": 2, "Litio": 1 }, integrity: -2.0 },
+            { category: "Piezas de Base", name: "Cúpula de vidrio para la habitación grande", recipe: { "Vidrio esmaltado": 4, "Titanio": 4, "Litio": 2 }, integrity: -4.0 },
             { category: "Piezas de Base", name: "Escotilla", recipe: { "Cuarzo": 1, "Titanio": 2 }, integrity: -1.0 },
             { category: "Piezas de Base", name: "Ventana", recipe: { "Vidrio": 1 }, integrity: -1.0 },
             { category: "Piezas de Base", name: "Refuerzo", recipe: { "Titanio": 3, "Litio": 1 }, integrity: 7.0 },
@@ -469,9 +476,11 @@
         ];
 
         let cart = {};
+        
         let holdTimer = null;
         let holdInterval = null;
         let isHolding = false;
+        
         let alterra_saves = JSON.parse(localStorage.getItem("alterra_saves")) || {};
 
         function getSafeFilename(name) {
@@ -690,12 +699,22 @@
                     }
                     recipeHTML += '</div>';
 
+                    // Generador del badge de integridad
+                    let integrityHTML = '';
+                    if (item.integrity !== undefined) {
+                        const isPositive = item.integrity > 0;
+                        const sign = isPositive ? '+' : '';
+                        const cssClass = isPositive ? 'integrity-positive' : 'integrity-negative';
+                        integrityHTML = `<div class="integrity-badge ${cssClass}">🛡️ Casco: ${sign}${item.integrity}</div>`;
+                    }
+
                     const imageFilename = getSafeFilename(item.name);
                     
                     card.innerHTML = `
                         <button class="delete-btn" onclick="deleteItem(event, '${item.name}', '${safeId}')" title="Eliminar este objeto">✕</button>
                         <div class="item-name">${item.name}</div>
                         <img src="iconos/${imageFilename}" class="item-image" alt="${item.name}" onerror="this.style.display='none'">
+                        ${integrityHTML}
                         ${recipeHTML}
                         <div class="qty-controls">
                             <button class="btn-icon" 
